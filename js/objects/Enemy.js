@@ -42,45 +42,36 @@ class Enemy {
             this.graphics.fillRect(x, this.y, w, ENEMY_HEIGHT);
         }
 
-        // 小火柴人
+        // 小火柴人（合并绘制）
         const cx = TRACK_LEFT + TRACK_WIDTH / 2;
         const cy = this.y + ENEMY_HEIGHT / 2;
         const drawCount = Math.min(this.count, 10);
         const spacing = Math.min(w / (drawCount + 1), 30);
         const startX = cx - (drawCount - 1) * spacing / 2;
+        const color = parseInt(COLORS.enemyStickman.replace('#', ''), 16);
 
         for (let j = 0; j < drawCount; j++) {
             const sx = startX + j * spacing;
-            this.drawStickman(sx, cy, 0.55);
+            const sy = cy;
+            const s = 7 * 0.55;
+
+            // 头
+            this.graphics.fillStyle(color, 1);
+            this.graphics.fillCircle(sx, sy - s * 2.2, s * 0.5);
+
+            // 身体+胳膊+腿 合并
+            this.graphics.lineStyle(1.5, color, 1);
+            this.graphics.beginPath();
+            this.graphics.moveTo(sx, sy - s * 1.7);
+            this.graphics.lineTo(sx, sy - s * 0.3);
+            this.graphics.moveTo(sx - s * 0.7, sy - s * 1.2);
+            this.graphics.lineTo(sx + s * 0.7, sy - s * 1.2);
+            this.graphics.moveTo(sx, sy - s * 0.3);
+            this.graphics.lineTo(sx - s * 0.5, sy + s * 0.3);
+            this.graphics.moveTo(sx, sy - s * 0.3);
+            this.graphics.lineTo(sx + s * 0.5, sy + s * 0.3);
+            this.graphics.strokePath();
         }
-    }
-
-    drawStickman(sx, sy, scale) {
-        const s = 7 * scale;
-        const color = parseInt(COLORS.enemyStickman.replace('#', ''), 16);
-
-        this.graphics.fillStyle(color, 1);
-        this.graphics.fillCircle(sx, sy - s * 2.2, s * 0.5);
-
-        this.graphics.lineStyle(1.5, color, 1);
-        this.graphics.beginPath();
-        this.graphics.moveTo(sx, sy - s * 1.7);
-        this.graphics.lineTo(sx, sy - s * 0.3);
-        this.graphics.strokePath();
-
-        this.graphics.beginPath();
-        this.graphics.moveTo(sx - s * 0.7, sy - s * 1.2);
-        this.graphics.lineTo(sx + s * 0.7, sy - s * 1.2);
-        this.graphics.strokePath();
-
-        this.graphics.beginPath();
-        this.graphics.moveTo(sx, sy - s * 0.3);
-        this.graphics.lineTo(sx - s * 0.5, sy + s * 0.3);
-        this.graphics.strokePath();
-        this.graphics.beginPath();
-        this.graphics.moveTo(sx, sy - s * 0.3);
-        this.graphics.lineTo(sx + s * 0.5, sy + s * 0.3);
-        this.graphics.strokePath();
     }
 
     checkCollision(player) {
@@ -92,7 +83,29 @@ class Enemy {
             this.alive = false;
             this.flash = 1;
             player.addCount(-this.count);
+
+            // 震屏 + 红闪
+            const cam = this.scene.cameras.main;
+            cam.shake(150, 0.012);
+            cam.flash(150, 200, 50, 50, true);
+            cam.flashEffect.alpha = 0.4;
+
+            // 红色粒子爆发
+            this.emitParticles(player.getX(), this.y + ENEMY_HEIGHT / 2);
         }
+    }
+
+    emitParticles(x, y) {
+        if (!this.scene.textures.exists('particle')) return;
+        const emitter = this.scene.add.particles(x, y, 'particle', {
+            speed: { min: 60, max: 160 },
+            scale: { start: 0.7, end: 0 },
+            lifespan: 350,
+            tint: 0xff4e4e,
+            quantity: 12,
+            duration: 50,
+        });
+        this.scene.time.delayedCall(450, () => emitter.destroy());
     }
 
     isOffScreen() {

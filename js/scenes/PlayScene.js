@@ -7,6 +7,18 @@ class PlayScene extends Phaser.Scene {
     create() {
         this.cameras.main.setBackgroundColor(COLORS.bg);
 
+        // 生成粒子纹理（8x8 白色圆形）
+        if (!this.textures.exists('particle')) {
+            const gfx = this.make.graphics({ x: 0, y: 0, add: false });
+            gfx.fillStyle(0xffffff, 1);
+            gfx.fillCircle(4, 4, 4);
+            gfx.generateTexture('particle', 8, 8);
+            gfx.destroy();
+        }
+
+        // 场景 fadeIn
+        this.cameras.main.fadeIn(400);
+
         // 状态
         this.scrollDistance = 0;
         this.scrollSpeed = INITIAL_SCROLL_SPEED;
@@ -14,6 +26,8 @@ class PlayScene extends Phaser.Scene {
         this.eventToggle = false;
         this.difficulty = 1;
         this.score = 0;
+        this.dying = false;
+        this.displayedCount = INITIAL_COUNT;
 
         // 创建对象
         this.track = new Track(this);
@@ -46,7 +60,41 @@ class PlayScene extends Phaser.Scene {
         }).setOrigin(1, 0.5).setDepth(11);
     }
 
+    animateCountHUD(newCount) {
+        const from = this.displayedCount;
+        const to = newCount;
+        if (from === to) return;
+
+        // 弹跳效果
+        this.tweens.add({
+            targets: this.countHudText,
+            scaleX: 1.3,
+            scaleY: 1.3,
+            duration: 100,
+            yoyo: true,
+            ease: 'Back.easeOut',
+        });
+
+        // 数字滚动
+        this.tweens.addCounter({
+            from: from,
+            to: to,
+            duration: 300,
+            ease: 'Power2',
+            onUpdate: (tween) => {
+                this.displayedCount = Math.round(tween.getValue());
+                this.countHudText.setText(`人数: ${this.displayedCount}`);
+            },
+            onComplete: () => {
+                this.displayedCount = to;
+                this.countHudText.setText(`人数: ${to}`);
+            },
+        });
+    }
+
     update(time, delta) {
+        if (this.dying) return;
+
         const dt = delta / 1000;
 
         // 滚动
@@ -92,11 +140,22 @@ class PlayScene extends Phaser.Scene {
         // HUD
         this.score = Math.max(this.score, Math.floor(this.scrollDistance / 10));
         this.distText.setText(`距离: ${this.score}`);
-        this.countHudText.setText(`人数: ${this.player.getCount()}`);
 
-        // Game Over
-        if (this.player.getCount() <= 0) {
-            this.scene.start('GameOverScene', { score: this.score });
+        const currentCount = this.player.getCount();
+        if (currentCount !== this.displayedCount) {
+            this.animateCountHUD(currentCount);
+        }
+
+        // Game Over — 延迟 + fadeOut
+        if (currentCount <= 0) {
+            this.dying = true;
+            this.cameras.main.shake(200, 0.015);
+            this.time.delayedCall(800, () => {
+                this.cameras.main.fadeOut(400, 0, 0, 0);
+                this.cameras.main.once('camerafadeoutcomplete', () => {
+                    this.scene.start('GameOverScene', { score: this.score });
+                });
+            });
         }
     }
 

@@ -37,6 +37,10 @@ class Player {
             this.isDragging = false;
             this.targetX = null;
         });
+        this.scene.input.on('pointerupoutside', () => {
+            this.isDragging = false;
+            this.targetX = null;
+        });
     }
 
     update(dt) {
@@ -49,7 +53,8 @@ class Player {
         } else if (right && !left) {
             this.x += PLAYER_SPEED * dt;
         } else if (this.targetX !== null) {
-            this.x = this.targetX;
+            // 平滑跟随触控位置
+            this.x = Phaser.Math.Linear(this.x, this.targetX, 0.25);
         }
 
         // 限制在跑道内
@@ -70,44 +75,50 @@ class Player {
         this.graphics.fillStyle(COLORS.player, 0.3);
         this.graphics.fillEllipse(this.x, this.y + 4, (r + 4) * 2, r);
 
-        // 火柴人
+        // 火柴人（合并绘制）
         const drawCount = Math.min(size, 12);
+        const colorNum = parseInt(COLORS.playerHex.replace('#', ''), 16);
+
         for (let i = 0; i < drawCount; i++) {
             const angle = (i / drawCount) * Math.PI * 2;
             const dist = Math.min(i * 2.5, r * 0.6);
             const sx = this.x + Math.cos(angle) * dist;
             const sy = this.y - 2 + Math.sin(angle) * dist * 0.4;
             const scale = 0.7 + Math.min(this.count / 30, 0.5);
-            this.drawStickman(sx, sy, COLORS.playerHex, scale);
+
+            // 头（填充圆）
+            const s = 8 * scale;
+            this.graphics.fillStyle(colorNum, 1);
+            this.graphics.fillCircle(sx, sy - s * 2.2, s * 0.5);
+
+            // 身体+胳膊+腿 合并为一次 beginPath/strokePath
+            this.graphics.lineStyle(1.5, colorNum, 1);
+            this.graphics.beginPath();
+            // 身体
+            this.graphics.moveTo(sx, sy - s * 1.7);
+            this.graphics.lineTo(sx, sy - s * 0.3);
+            // 胳膊
+            this.graphics.moveTo(sx - s * 0.7, sy - s * 1.2);
+            this.graphics.lineTo(sx + s * 0.7, sy - s * 1.2);
+            // 左腿
+            this.graphics.moveTo(sx, sy - s * 0.3);
+            this.graphics.lineTo(sx - s * 0.5, sy + s * 0.3);
+            // 右腿
+            this.graphics.moveTo(sx, sy - s * 0.3);
+            this.graphics.lineTo(sx + s * 0.5, sy + s * 0.3);
+            this.graphics.strokePath();
         }
     }
 
-    drawStickman(sx, sy, color, scale) {
-        const s = 8 * scale;
-        const colorNum = typeof color === 'string' ? parseInt(color.replace('#', ''), 16) : color;
-        this.graphics.fillStyle(colorNum, 1);
-        this.graphics.fillCircle(sx, sy - s * 2.2, s * 0.5);
-
-        this.graphics.lineStyle(1.5, colorNum, 1);
-        // 身体
-        this.graphics.beginPath();
-        this.graphics.moveTo(sx, sy - s * 1.7);
-        this.graphics.lineTo(sx, sy - s * 0.3);
-        this.graphics.strokePath();
-        // 胳膊
-        this.graphics.beginPath();
-        this.graphics.moveTo(sx - s * 0.7, sy - s * 1.2);
-        this.graphics.lineTo(sx + s * 0.7, sy - s * 1.2);
-        this.graphics.strokePath();
-        // 腿
-        this.graphics.beginPath();
-        this.graphics.moveTo(sx, sy - s * 0.3);
-        this.graphics.lineTo(sx - s * 0.5, sy + s * 0.3);
-        this.graphics.strokePath();
-        this.graphics.beginPath();
-        this.graphics.moveTo(sx, sy - s * 0.3);
-        this.graphics.lineTo(sx + s * 0.5, sy + s * 0.3);
-        this.graphics.strokePath();
+    popCountText() {
+        this.scene.tweens.add({
+            targets: this.countText,
+            scaleX: 1.5,
+            scaleY: 1.5,
+            duration: 200,
+            ease: 'Back.easeOut',
+            yoyo: true,
+        });
     }
 
     addCount(delta) {
@@ -116,6 +127,7 @@ class Player {
         const display = delta > 0 ? `+${Math.round(delta)}` : `${Math.round(delta)}`;
         const color = delta > 0 ? COLORS.green : COLORS.red;
         this.showFloatingText(display, color);
+        this.popCountText();
     }
 
     multiplyCount(factor) {
@@ -124,6 +136,7 @@ class Player {
         const display = factor >= 1 ? `\u00d7${factor}` : `\u00f7${Math.round(1 / factor)}`;
         const color = factor >= 1 ? COLORS.green : COLORS.red;
         this.showFloatingText(display, color);
+        this.popCountText();
     }
 
     showFloatingText(text, color) {

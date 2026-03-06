@@ -77,7 +77,32 @@ class Gate {
             const mid = TRACK_LEFT + GATE_HALF_W;
             const op = px < mid ? this.leftOp : this.rightOp;
             Gate.applyOp(op, player);
+
+            // 相机闪光 + 粒子爆发
+            const cam = this.scene.cameras.main;
+            if (op.favorable) {
+                cam.flash(200, 50, 255, 50, true);
+                cam.flashEffect.alpha = 0.3;
+                this.emitParticles(px, this.y + GATE_HEIGHT / 2, 0x32c850);
+            } else {
+                cam.flash(200, 255, 50, 50, true);
+                cam.flashEffect.alpha = 0.3;
+                this.emitParticles(px, this.y + GATE_HEIGHT / 2, 0xc83232);
+            }
         }
+    }
+
+    emitParticles(x, y, color) {
+        if (!this.scene.textures.exists('particle')) return;
+        const emitter = this.scene.add.particles(x, y, 'particle', {
+            speed: { min: 80, max: 200 },
+            scale: { start: 0.8, end: 0 },
+            lifespan: 400,
+            tint: color,
+            quantity: 15,
+            duration: 50,
+        });
+        this.scene.time.delayedCall(500, () => emitter.destroy());
     }
 
     static applyOp(op, player) {
@@ -127,12 +152,25 @@ class Gate {
     }
 
     static spawn(scene, playerCount) {
-        const left = Gate.generateOp(playerCount);
+        let left = Gate.generateOp(playerCount);
         let right = Gate.generateOp(playerCount);
+
+        // 保证两侧不同
         if (left.label === right.label) {
             const n = Math.floor(Math.random() * 3) + 1;
             right = { label: `+${n}`, apply: (c) => c + n, favorable: true };
         }
+
+        // 保证至少一侧有利
+        if (!left.favorable && !right.favorable) {
+            const n = Math.floor(Math.random() * 3) + 1;
+            if (Math.random() < 0.5) {
+                left = { label: `+${n}`, apply: (c) => c + n, favorable: true };
+            } else {
+                right = { label: `+${n}`, apply: (c) => c + n, favorable: true };
+            }
+        }
+
         return new Gate(scene, -80, left, right);
     }
 }
