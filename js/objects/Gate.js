@@ -81,12 +81,10 @@ class Gate {
             // 相机闪光 + 粒子爆发
             const cam = this.scene.cameras.main;
             if (op.favorable) {
-                cam.flash(200, 50, 255, 50, true);
-                cam.flashEffect.alpha = 0.3;
+                cam.flash(200, 15, 76, 15, true);
                 this.emitParticles(px, this.y + GATE_HEIGHT / 2, 0x32c850);
             } else {
-                cam.flash(200, 255, 50, 50, true);
-                cam.flashEffect.alpha = 0.3;
+                cam.flash(200, 76, 15, 15, true);
                 this.emitParticles(px, this.y + GATE_HEIGHT / 2, 0xc83232);
             }
         }
@@ -111,6 +109,7 @@ class Gate {
         const delta = newCount - oldCount;
 
         if (op.label.startsWith('\u00d7') || op.label.startsWith('\u00f7')) {
+            if (oldCount === 0) return;
             player.multiplyCount(newCount / oldCount);
         } else {
             player.addCount(delta);

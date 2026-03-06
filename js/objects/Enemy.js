@@ -87,8 +87,7 @@ class Enemy {
             // 震屏 + 红闪
             const cam = this.scene.cameras.main;
             cam.shake(150, 0.012);
-            cam.flash(150, 200, 50, 50, true);
-            cam.flashEffect.alpha = 0.4;
+            cam.flash(150, 100, 25, 25, true);
 
             // 红色粒子爆发
             this.emitParticles(player.getX(), this.y + ENEMY_HEIGHT / 2);

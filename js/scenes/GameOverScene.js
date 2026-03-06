@@ -52,18 +52,18 @@ class GameOverScene extends Phaser.Scene {
             ease: 'Power2',
         });
 
-        // 重新开始按钮
-        const btnX = cx - 80;
-        const btnY = GAME_H * 0.58;
+        // 重新开始按钮 — draw centered at origin, position at button center
         const btnW = 160;
         const btnH = 50;
+        const btnCX = cx;
+        const btnCY = GAME_H * 0.58 + btnH / 2;
 
         const btnGfx = this.add.graphics();
-        btnGfx.fillStyle(COLORS.player, 1);
-        btnGfx.fillRoundedRect(btnX, btnY, btnW, btnH, 10);
+        btnGfx.setPosition(btnCX, btnCY);
+        this.drawBtnRect(btnGfx, btnW, btnH, COLORS.player);
         btnGfx.setAlpha(0);
 
-        const btnText = this.add.text(cx, btnY + btnH / 2, '再来一次', {
+        const btnText = this.add.text(btnCX, btnCY, '再来一次', {
             fontFamily: 'Arial',
             fontSize: '22px',
             fontStyle: 'bold',
@@ -79,9 +79,12 @@ class GameOverScene extends Phaser.Scene {
             ease: 'Power2',
         });
 
-        // 按钮点击区域
-        const btnZone = this.add.zone(cx, btnY + btnH / 2, btnW, btnH).setInteractive();
+        // 按钮点击区域 — 延迟激活，避免入场动画期间误触
+        const btnZone = this.add.zone(btnCX, btnCY, btnW, btnH);
+        this.time.delayedCall(900, () => btnZone.setInteractive());
+
         btnZone.on('pointerdown', () => {
+            btnZone.disableInteractive();
             this.tweens.add({
                 targets: [btnGfx, btnText],
                 scaleX: 0.95,
@@ -98,14 +101,16 @@ class GameOverScene extends Phaser.Scene {
             });
         });
         btnZone.on('pointerover', () => {
-            btnGfx.clear();
-            btnGfx.fillStyle(0x6ab5ff, 1);
-            btnGfx.fillRoundedRect(btnX, btnY, btnW, btnH, 10);
+            this.drawBtnRect(btnGfx, btnW, btnH, 0x6ab5ff);
         });
         btnZone.on('pointerout', () => {
-            btnGfx.clear();
-            btnGfx.fillStyle(COLORS.player, 1);
-            btnGfx.fillRoundedRect(btnX, btnY, btnW, btnH, 10);
+            this.drawBtnRect(btnGfx, btnW, btnH, COLORS.player);
         });
+    }
+
+    drawBtnRect(gfx, w, h, color) {
+        gfx.clear();
+        gfx.fillStyle(color, 1);
+        gfx.fillRoundedRect(-w / 2, -h / 2, w, h, 10);
     }
 }

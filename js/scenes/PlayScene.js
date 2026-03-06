@@ -28,6 +28,7 @@ class PlayScene extends Phaser.Scene {
         this.score = 0;
         this.dying = false;
         this.displayedCount = INITIAL_COUNT;
+        this.countHudTarget = INITIAL_COUNT;
 
         // 创建对象
         this.track = new Track(this);
@@ -64,6 +65,7 @@ class PlayScene extends Phaser.Scene {
         const from = this.displayedCount;
         const to = newCount;
         if (from === to) return;
+        this.countHudTarget = to;
 
         // 弹跳效果
         this.tweens.add({
@@ -142,7 +144,7 @@ class PlayScene extends Phaser.Scene {
         this.distText.setText(`距离: ${this.score}`);
 
         const currentCount = this.player.getCount();
-        if (currentCount !== this.displayedCount) {
+        if (currentCount !== this.countHudTarget) {
             this.animateCountHUD(currentCount);
         }
 
