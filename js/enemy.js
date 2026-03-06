@@ -1,19 +1,15 @@
-// enemy.js — 敌人：生成、碰撞、渲染
+// enemy.js — 敌人：生成、碰撞、渲染（全跑道宽度，强制碰撞）
 const Enemy = (() => {
-    const RADIUS = 16;
+    const HEIGHT = 40;
 
-    let enemies = [];  // [{x, y, count, alive}]
+    let enemies = [];  // [{y, count, alive, flash}]
 
     function spawn(y, playerCount) {
         // 敌人数值：基于玩家积分动态调整，不超过玩家积分的 60%
         const maxVal = Math.max(1, Math.floor(playerCount * 0.6));
         const count = Math.floor(Math.random() * maxVal) + 1;
 
-        // 随机车道
-        const lane = Math.floor(Math.random() * Track.LANE_COUNT);
-        const x = Track.getLaneX(lane);
-
-        enemies.push({ x, y, count, alive: true, flash: 0 });
+        enemies.push({ y, count, alive: true, flash: 0 });
     }
 
     function update(dt, scrollSpeed) {
@@ -22,18 +18,12 @@ const Enemy = (() => {
             e.y += scrollSpeed * dt;
             if (e.flash > 0) e.flash -= dt * 3;
 
-            // 碰撞检测
+            // 碰撞检测：全跑道宽度，玩家中心 y 进入敌人区域即触发
             if (e.alive) {
                 const ph = Player.getHitbox();
-                const px = ph.x + ph.w / 2;
                 const py = ph.y + ph.h / 2;
 
-                const dx = px - e.x;
-                const dy = py - e.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const hitDist = Player.RADIUS + RADIUS;
-
-                if (dist < hitDist) {
+                if (py >= e.y && py <= e.y + HEIGHT) {
                     e.alive = false;
                     e.flash = 1;
                     Player.addCount(-e.count);
@@ -51,45 +41,43 @@ const Enemy = (() => {
         for (const e of enemies) {
             if (!e.alive) continue;
 
-            // 红色小人群
-            drawEnemyCrowd(ctx, e.x, e.y, e.count);
+            const x = Track.TRACK_LEFT;
+            const w = Track.TRACK_WIDTH;
+
+            // 红色横条背景
+            ctx.fillStyle = 'rgba(200, 40, 40, 0.6)';
+            ctx.fillRect(x, e.y, w, HEIGHT);
+
+            // 边框
+            ctx.strokeStyle = '#ff4e4e';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, e.y, w, HEIGHT);
+
+            // 在横条内画多个红色小火柴人
+            const cx = Track.TRACK_LEFT + Track.TRACK_WIDTH / 2;
+            const cy = e.y + HEIGHT / 2;
+            const drawCount = Math.min(e.count, 10);
+            const spacing = Math.min(w / (drawCount + 1), 30);
+            const startX = cx - (drawCount - 1) * spacing / 2;
+
+            for (let j = 0; j < drawCount; j++) {
+                const sx = startX + j * spacing;
+                drawRedStickman(ctx, sx, cy, 0.55);
+            }
 
             // 数值
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 16px Arial';
+            ctx.font = 'bold 18px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
-            ctx.fillText(e.count, e.x, e.y - RADIUS - 6);
-        }
-    }
-
-    function drawEnemyCrowd(ctx, cx, cy, num) {
-        const size = Math.min(num, 30);
-        const r = RADIUS + Math.min(size * 0.2, 8);
-
-        // 底座
-        ctx.fillStyle = '#ff4444';
-        ctx.globalAlpha = 0.3;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy + 3, r + 2, r * 0.5, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        // 小火柴人
-        const drawCount = Math.min(size, 8);
-        for (let i = 0; i < drawCount; i++) {
-            const angle = (i / drawCount) * Math.PI * 2;
-            const dist = Math.min(i * 2, r * 0.5);
-            const sx = cx + Math.cos(angle) * dist;
-            const sy = cy - 1 + Math.sin(angle) * dist * 0.3;
-            drawRedStickman(ctx, sx, sy, 0.6);
+            ctx.fillText(e.count, cx, e.y - 4);
         }
     }
 
     function drawRedStickman(ctx, sx, sy, scale) {
         const s = 7 * scale;
-        ctx.strokeStyle = '#ff6666';
-        ctx.fillStyle = '#ff6666';
+        ctx.strokeStyle = '#ff9999';
+        ctx.fillStyle = '#ff9999';
         ctx.lineWidth = 1.5;
 
         ctx.beginPath();
@@ -118,5 +106,5 @@ const Enemy = (() => {
         enemies = [];
     }
 
-    return { spawn, update, render, reset, RADIUS };
+    return { spawn, update, render, reset, HEIGHT };
 })();

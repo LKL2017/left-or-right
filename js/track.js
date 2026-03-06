@@ -2,7 +2,7 @@
 const Track = (() => {
     const LOGICAL_W = 400;
     const LOGICAL_H = 700;
-    const LANE_COUNT = 3;
+    const LANE_COUNT = 2;
     const TRACK_PADDING = 40;           // 跑道左右留白
     const TRACK_LEFT = TRACK_PADDING;
     const TRACK_RIGHT = LOGICAL_W - TRACK_PADDING;
@@ -15,7 +15,7 @@ const Track = (() => {
     let scrollY = 0;
 
     function getLaneX(lane) {
-        // lane 0/1/2 → 车道中心 x
+        // lane 0/1 → 车道中心 x
         return TRACK_LEFT + LANE_WIDTH * (lane + 0.5);
     }
 
